@@ -7,24 +7,26 @@ phases:
     commands:
     - echo Logging in to Amazon ECR...
     - aws --version
-    - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
-    - TAG="$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
-    - IMAGE_URI=${REPOSITORY_URI}:${TAG}
+    - REPOSITORY_URI=217912722796.dkr.ecr.us-east-2.amazonaws.com/my-repo
+    - DOCKER_LOGIN_PASSWORD=$(aws ecr get-login-password  --region us-east-2)
+    - docker login -u AWS -p $DOCKER_LOGIN_PASSWORD https://217912722796.dkr.ecr.us-east-2.amazonaws.com
+
   build:
     commands:
     - echo Build started on `date`
     - echo $IMAGE_URI
-    - mvn clean package -Ddockerfile.skip
-    - docker build -t $IMAGE_URI .
+    - mvn clean package -dockerfile.skip
+    - docker build -t $REPOSITORY_URI:assignment-${CODEBUILD_BUILD_NUMBER} .
   post_build:
     commands:
     - printenv
     - echo Build completed on `date`
     - echo $(docker images)
     - echo Pushing docker image
-    - docker push $IMAGE_URI
+    - docker push $REPOSITORY_URI:assignment-${CODEBUILD_BUILD_NUMBER}
+
     - echo push completed
-    - printf '[{"name":"%s","imageUri":"%s"}]' $CONTAINER_NAME $IMAGE_URI > imagedefinitions.json
+    - printf '[{"name":"assignment","imageUri":"%s"}]' $REPOSITORY_URI:assignment-${CODEBUILD_BUILD_NUMBER} > imagedefinitions.json	
 artifacts:
   files:
   - imagedefinitions.json
